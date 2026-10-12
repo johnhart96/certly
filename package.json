@@ -1,0 +1,44 @@
+{
+  "name": "certly",
+  "version": "1.0.0-beta.0",
+  "private": true,
+  "description": "A self-hosted, web-based local certificate authority for issuing trusted TLS certificates for your development and home-lab domains",
+  "keywords": [
+    "certificate-authority",
+    "ca",
+    "tls",
+    "ssl",
+    "x509",
+    "csr",
+    "pki",
+    "self-hosted",
+    "docker",
+    "homelab"
+  ],
+  "homepage": "https://github.com/johnhart/certly#readme",
+  "bugs": {
+    "url": "https://github.com/johnhart/certly/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/johnhart/certly.git"
+  },
+  "author": "John Hart",
+  "license": "MIT",
+  "type": "module",
+  "main": "src/server.js",
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "node --watch src/server.js",
+    "test": "node --test \"test/**/*.test.js\""
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "dependencies": {
+    "@peculiar/x509": "^2.1.0",
+    "express": "^5.3.0",
+    "openid-client": "^6.8.8",
+    "reflect-metadata": "^0.2.2"
+  }
+}

@@ -1,0 +1,29 @@
+services:
+  certly:
+    build: .
+    image: certly:latest
+    container_name: certly
+    restart: unless-stopped
+    ports:
+      # Bound to localhost only. Change to "3000:3000" to reach Certly from other
+      # machines on your network, and enable one of the sign-in options below if you do.
+      - "127.0.0.1:3000:3000"
+    environment:
+      CA_NAME: "Certly Local CA"
+      CA_ORGANIZATION: "Certly"
+
+      # Sign-in option 1: OpenID Connect, e.g. Authentik (see README).
+      # CERTLY_URL: https://certly.example.com
+      # OIDC_ISSUER: https://authentik.example.com/application/o/certly/
+      # OIDC_CLIENT_ID: your-client-id
+      # OIDC_CLIENT_SECRET: your-client-secret
+      # OIDC_ALLOWED_GROUPS: certly-admins
+
+      # Sign-in option 2: HTTP basic auth.
+      # CERTLY_USERNAME: admin
+      # CERTLY_PASSWORD: change-me
+    volumes:
+      - certly-data:/data
+
+volumes:
+  certly-data:

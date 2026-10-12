@@ -1,0 +1,192 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Certly</title>
+  <link rel="icon" href="favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <img src="favicon.svg" alt="" width="28" height="28">
+      <span class="brand-name">Certly</span>
+      <span class="brand-tag">Local Certificate Authority</span>
+      <a class="version" id="app-version" href="https://github.com/johnhart/certly/releases" target="_blank" rel="noopener" title="Release notes" hidden></a>
+      <span class="pill warn" id="app-prerelease" title="This is a pre-release build. It may contain bugs or unfinished features." hidden>Pre-release</span>
+    </div>
+    <form class="account" id="account" method="post" action="auth/logout" hidden>
+      <span class="account-name" id="account-name"></span>
+      <button class="btn small" type="submit">Sign out</button>
+    </form>
+  </header>
+
+  <div class="layout">
+    <aside class="sidebar">
+      <section class="card ca-card">
+        <div class="card-head">
+          <h2>Root CA</h2>
+          <span class="pill ok" id="ca-status">Active</span>
+        </div>
+        <dl class="meta">
+          <dt>Subject</dt><dd id="ca-subject">…</dd>
+          <dt>Expires</dt><dd id="ca-expires">…</dd>
+          <dt>SHA-256</dt><dd class="mono fingerprint" id="ca-fingerprint">…</dd>
+        </dl>
+        <div class="btn-row">
+          <a class="btn primary" href="api/ca/download/pem" download>Download CA (.crt)</a>
+          <a class="btn" href="api/ca/download/der" download title="DER format, for Windows">.cer</a>
+        </div>
+        <details class="howto">
+          <summary>How to trust this CA</summary>
+          <div class="howto-body">
+            <p><strong>Chrome / Edge (Windows)</strong> — open the <code>.crt</code>, choose <em>Install Certificate → Local Machine → Trusted Root Certification Authorities</em>.</p>
+            <p><strong>macOS (Safari, Chrome)</strong> — open the <code>.crt</code> in Keychain Access, add it to <em>System</em>, then double-click it and set <em>When using this certificate</em> to <em>Always Trust</em>.</p>
+            <p><strong>Firefox</strong> — Settings → Privacy &amp; Security → <em>View Certificates</em> → Authorities → <em>Import</em>, and tick “Trust this CA to identify websites”.</p>
+            <p><strong>Linux (Chrome)</strong> — Settings → Privacy and security → Security → <em>Manage certificates</em> → Authorities → <em>Import</em>.</p>
+            <p><strong>Linux (system)</strong></p>
+            <pre><code>sudo cp certly-local-ca.crt /usr/local/share/ca-certificates/
+sudo update-ca-certificates</code></pre>
+            <p class="muted">Check the SHA-256 fingerprint above matches before trusting it.</p>
+          </div>
+        </details>
+      </section>
+
+      <section class="card">
+        <div class="card-head"><h2>Domains</h2></div>
+        <form id="add-domain" class="inline-form" autocomplete="off">
+          <input id="domain-input" name="name" placeholder="example.com" aria-label="Domain name" required>
+          <button class="btn primary" type="submit">Add</button>
+        </form>
+        <ul id="domain-list" class="domain-list"></ul>
+        <p id="domain-empty" class="muted small" hidden>No domains yet. Add one above to start issuing certificates.</p>
+      </section>
+    </aside>
+
+    <main class="content">
+      <section id="welcome" class="card welcome">
+        <h1>Welcome to Certly</h1>
+        <ol class="steps">
+          <li><strong>Download the root CA</strong> and import it into your browser or operating system.</li>
+          <li><strong>Add a domain</strong> such as <code>domain.com</code>.</li>
+          <li><strong>Generate a key and certificate</strong>, or <strong>upload a CSR</strong>, for that domain or any of its subdomains, including wildcards.</li>
+          <li><strong>Download the certificate</strong> and install it alongside your private key.</li>
+        </ol>
+      </section>
+
+      <section id="domain-view" hidden>
+        <div class="domain-header">
+          <div>
+            <p class="eyebrow">Domain</p>
+            <h1 id="domain-title"></h1>
+            <p class="muted small" id="domain-scope"></p>
+          </div>
+          <button class="btn danger ghost" id="delete-domain">Delete domain</button>
+        </div>
+
+        <section class="card">
+          <div class="card-head">
+            <h2>Issue a certificate</h2>
+            <div class="tabs" role="tablist">
+              <button type="button" role="tab" class="tab active" data-tab="generate" aria-selected="true">Generate key</button>
+              <button type="button" role="tab" class="tab" data-tab="csr" aria-selected="false">Upload CSR</button>
+            </div>
+          </div>
+
+          <div data-panel="generate">
+          <form id="gen-form" autocomplete="off">
+            <label class="field">
+              <span>Hostnames</span>
+              <input id="gen-names" class="mono" placeholder="app.example.com, *.example.com" required>
+              <span class="muted small">Comma or space separated. The first is used as the common name.</span>
+            </label>
+            <div class="form-foot">
+              <div class="form-opts">
+                <label class="days">
+                  Key
+                  <select id="gen-key">
+                    <option value="ec-p256">ECDSA P-256</option>
+                    <option value="ec-p384">ECDSA P-384</option>
+                    <option value="rsa-2048">RSA 2048</option>
+                    <option value="rsa-4096">RSA 4096</option>
+                  </select>
+                </label>
+                <label class="days">
+                  Valid for
+                  <input type="number" id="gen-days" min="1" step="1">
+                  days
+                </label>
+              </div>
+              <button class="btn primary" type="submit" id="gen-btn">Generate certificate</button>
+            </div>
+          </form>
+
+          <div id="gen-result" class="result" hidden>
+            <div class="result-head">
+              <strong>Certificate issued for <span id="gen-result-names"></span></strong>
+              <button type="button" class="icon-btn" id="gen-dismiss" aria-label="Dismiss" title="Dismiss">✕</button>
+            </div>
+            <p class="warning">Download the private key now. Certly doesn't store it, so it can't be downloaded again after you leave this page.</p>
+            <div class="btn-row wrap">
+              <button type="button" class="btn primary" data-save="key">Private key</button>
+              <button type="button" class="btn" data-save="cert">Certificate</button>
+              <button type="button" class="btn" data-save="chain">Full chain</button>
+            </div>
+          </div>
+          </div>
+
+          <div data-panel="csr" hidden>
+          <form id="csr-form">
+            <label class="dropzone" id="dropzone">
+              <input type="file" id="csr-file" accept=".csr,.pem,.req,.txt" hidden>
+              <span class="dz-icon" aria-hidden="true">⇪</span>
+              <span><strong>Drop a CSR file here</strong> or click to browse</span>
+              <span class="muted small" id="csr-filename">.csr / .pem — RSA or ECDSA</span>
+            </label>
+            <textarea id="csr-text" class="mono" rows="7" spellcheck="false"
+              placeholder="…or paste a PEM CSR here&#10;-----BEGIN CERTIFICATE REQUEST-----&#10;…&#10;-----END CERTIFICATE REQUEST-----"></textarea>
+            <div class="form-foot">
+              <label class="days">
+                Valid for
+                <input type="number" id="csr-days" min="1" step="1">
+                days
+              </label>
+              <button class="btn primary" type="submit" id="sign-btn">Sign certificate</button>
+            </div>
+          </form>
+          <details class="howto">
+            <summary>Need a CSR? Generate one with OpenSSL</summary>
+            <div class="howto-body">
+              <pre><code id="openssl-cmd"></code></pre>
+              <button class="btn small" type="button" id="copy-cmd">Copy command</button>
+              <p class="muted small">This creates a private key that never leaves your machine, plus a CSR to upload here.</p>
+            </div>
+          </details>
+          </div>
+        </section>
+
+        <section class="card">
+          <div class="card-head">
+            <h2>Certificates</h2>
+            <span class="muted small" id="cert-count"></span>
+          </div>
+          <div class="table-wrap">
+            <table class="certs">
+              <thead>
+                <tr><th>Names</th><th>Key</th><th>Expires</th><th class="actions-col">Download</th></tr>
+              </thead>
+              <tbody id="cert-rows"></tbody>
+            </table>
+          </div>
+          <p id="cert-empty" class="muted small empty" hidden>No certificates issued for this domain yet.</p>
+        </section>
+      </section>
+    </main>
+  </div>
+
+  <div id="toasts" class="toasts" aria-live="polite"></div>
+
+  <script src="app.js" type="module"></script>
+</body>
+</html>
