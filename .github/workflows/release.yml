@@ -30,7 +30,7 @@ jobs:
             type=semver,pattern={{major}}
             # Pre-releases get only their exact version tag (major/minor tags skip them automatically).
             type=raw,value=latest,enable=${{ !contains(github.ref_name, '-') }}
-      - uses: docker/build-push-action@v6
+      - uses: docker/build-push-action@v7
         with:
           context: .
           platforms: linux/amd64,linux/arm64
