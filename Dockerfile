@@ -1,4 +1,4 @@
-FROM node:24-alpine
+FROM node:26-alpine
 
 LABEL org.opencontainers.image.source="https://github.com/johnhart/certly" \
       org.opencontainers.image.description="A web-based local certificate authority" \
